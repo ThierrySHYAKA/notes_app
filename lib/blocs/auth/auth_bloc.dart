@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -11,6 +12,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignUpRequested>(_onSignUpRequested);
     on<AuthLogoutRequested>(_onLogoutRequested);
     on<AuthCheckRequested>(_onCheckRequested);
+    on<AuthGoogleSignInRequested>(_onGoogleSignInRequested); // Added handler
   }
 
   Future<void> _onLoginRequested(
@@ -86,6 +88,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
     } else {
       emit(AuthInitial());
+    }
+  }
+
+  Future<void> _onGoogleSignInRequested(
+    AuthGoogleSignInRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+
+      if (googleUser == null) {
+        emit(AuthFailure(message: 'Google sign-in was cancelled.'));
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        emit(AuthSuccess(
+          userId: userCredential.user!.uid,
+          email: userCredential.user!.email!,
+        ));
+      }
+    } catch (e) {
+      emit(AuthFailure(message: 'Google sign-in failed: ${e.toString()}'));
     }
   }
 
