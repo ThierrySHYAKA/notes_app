@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/notes/notes_cubit.dart';
-import '../blocs/notes/notes_state.dart';
 import '../models/note_model.dart';
 
 class NotesScreen extends StatelessWidget {
